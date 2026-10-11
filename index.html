@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>It's Exam Babe 📚 — GNITC Student Hub</title>
+  <meta name="description" content="Your ultimate exam prep companion for GNITC students. Access question banks, model answers, and smart subject summaries — no login required."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo" onclick="goHome()">
+      <span class="logo-emoji">📚</span>
+      <div class="logo-text">
+        <span class="logo-title">It's Exam Babe</span>
+        <span class="logo-sub">GNITC Student Hub</span>
+      </div>
+    </div>
+    <nav class="breadcrumb" id="breadcrumb"></nav>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+  <!-- HERO (shown only at home) -->
+  <section class="hero" id="hero">
+    <div class="hero-badge">✨ No Login Required</div>
+    <h1 class="hero-title">Your Exam Survival Kit</h1>
+    <p class="hero-desc">Question banks, smart answers &amp; last-minute subject intel — all in one place.</p>
+    <div class="hero-scroll-hint">👇 Select your college to get started</div>
+  </section>
+
+  <!-- STEP CONTAINER -->
+  <div class="step-container" id="stepContainer">
+    <!-- Cards injected by JS -->
+  </div>
+</main>
+
+<!-- CONTENT AREA (QB, Answers, Talent) -->
+<section class="content-area" id="contentArea" style="display:none">
+  <div class="content-header">
+    <button class="btn-back" id="btnBackContent" onclick="backFromContent()">← Back</button>
+    <div class="content-meta" id="contentMeta"></div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-qb" onclick="switchTab('qb')">
+      <span class="tab-icon">📋</span> Question Bank
+    </button>
+    <button class="tab-btn" id="tab-answers" onclick="switchTab('answers')">
+      <span class="tab-icon">✅</span> Answers
+    </button>
+    <button class="tab-btn" id="tab-talent" onclick="switchTab('talent')">
+      <span class="tab-icon">⚡</span> Student Talent
+    </button>
+  </div>
+
+  <!-- TAB PANELS -->
+  <div class="tab-panels">
+
+    <!-- QB PANEL -->
+    <div class="tab-panel active" id="panel-qb">
+      <div class="panel-toolbar">
+        <div class="filter-row">
+          <select class="filter-select" id="unitFilter" onchange="renderQB()">
+            <option value="all">All Units</option>
+          </select>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="qbSearch" placeholder="Search questions…" oninput="renderQB()"/>
+          </div>
+        </div>
+        <div class="question-count" id="questionCount"></div>
+      </div>
+      <div class="questions-list" id="questionsList"></div>
+    </div>
+
+    <!-- ANSWERS PANEL -->
+    <div class="tab-panel" id="panel-answers">
+      <div class="answers-placeholder">
+        <div class="placeholder-icon">🚧</div>
+        <h3>Answers Coming Soon</h3>
+        <p>Model answers will be uploaded here. Stay tuned!</p>
+      </div>
+    </div>
+
+    <!-- TALENT PANEL -->
+    <div class="tab-panel" id="panel-talent">
+      <div class="talent-content" id="talentContent"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <p>Made with ❤️ for GNITC students &nbsp;|&nbsp; <em>It's Exam Babe</em> — No stress, just prep.</p>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
