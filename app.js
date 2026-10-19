@@ -8,7 +8,9 @@ let state = {
   dept: null,
   sem: null,
   subject: null,
-  step: "college"   // college | dept | sem | subject
+  step: "college",   // college | dept | sem | subject
+  ansIndex: 0,
+  ansUnit: "all"
 };
 
 // ── Init ─────────────────────────────────────────────────────
@@ -171,6 +173,7 @@ function switchTab(tab) {
   document.getElementById(`panel-${tab}`).classList.add("active");
 
   if (tab === "qb")      renderQB();
+  if (tab === "answers") renderAnswers();
   if (tab === "talent")  renderTalent();
 }
 
@@ -207,6 +210,7 @@ function renderQB() {
 
   list.innerHTML = "";
   filtered.forEach((q, i) => {
+    const originalIdx = all.indexOf(q);
     const card = document.createElement("div");
     card.className = "question-card fade-in";
     card.innerHTML = `
@@ -217,9 +221,185 @@ function renderQB() {
           <span class="q-tag unit">Unit ${q.unit}</span>
           ${q.bt ? `<span class="q-tag bt">BT L${q.bt} · ${btLabel[q.bt]||""}</span>` : ""}
         </div>
+        <button class="btn-view-ans" onclick="openAnswerForQ(${originalIdx})">
+          📝 View 10-Mark Answer →
+        </button>
       </div>
       <button class="q-copy" title="Copy question" onclick="copyQ(event, ${JSON.stringify(q.q)})">📋</button>`;
     list.appendChild(card);
+  });
+}
+
+// ── Open Specific Answer from QB ─────────────────────────────
+function openAnswerForQ(originalIdx) {
+  state.ansIndex = originalIdx;
+  state.ansUnit = "all";
+  switchTab("answers");
+  const area = document.getElementById("contentArea");
+  if (area) {
+    window.scrollTo({ top: area.offsetTop - 15, behavior: "smooth" });
+  }
+}
+
+// ── Answers Renderer (10-Mark Dual-Column Adjacent) ─────────
+function renderAnswers() {
+  const key = `${state.dept.id}-${semNumber()}-${state.subject.id}`;
+  const all = QUESTION_BANKS[key] || [];
+
+  const mainCard = document.getElementById("answerMainCard");
+  const sidebar = document.getElementById("answerCompanionSidebar");
+  const unitSel = document.getElementById("ansUnitFilter");
+  const qSel = document.getElementById("ansQSelect");
+
+  if (!mainCard || !sidebar) return;
+
+  if (all.length === 0) {
+    mainCard.innerHTML = `<div class="no-results"><div class="nr-icon">🚧</div><p>No questions or model answers uploaded yet for this subject.</p></div>`;
+    sidebar.innerHTML = "";
+    return;
+  }
+
+  // Populate unit filter options
+  const units = [...new Set(all.map(q => q.unit))].sort((a,b)=>a-b);
+  const currentUnitVal = state.ansUnit || "all";
+  unitSel.innerHTML = `<option value="all">All Units</option>` +
+    units.map(u => `<option value="${u}" ${u == currentUnitVal ? "selected" : ""}>Unit ${u}</option>`).join("");
+
+  // Filter list by selected unit
+  let filtered = all;
+  if (currentUnitVal !== "all") {
+    filtered = all.filter(q => q.unit == currentUnitVal);
+  }
+
+  if (filtered.length === 0) {
+    filtered = all;
+    state.ansUnit = "all";
+    unitSel.value = "all";
+  }
+
+  // Clamp state.ansIndex
+  if (state.ansIndex >= filtered.length) state.ansIndex = 0;
+  if (state.ansIndex < 0) state.ansIndex = filtered.length - 1;
+
+  // Populate question select dropdown
+  qSel.innerHTML = filtered.map((q, idx) => {
+    const truncated = q.q.length > 55 ? q.q.substring(0, 55) + "…" : q.q;
+    return `<option value="${idx}" ${idx === state.ansIndex ? "selected" : ""}>Q${idx+1}: [U${q.unit}] ${escHtml(truncated)}</option>`;
+  }).join("");
+
+  // Update nav counter
+  const counterEl = document.getElementById("ansNavCounter");
+  if (counterEl) {
+    counterEl.textContent = `${state.ansIndex + 1} of ${filtered.length}`;
+  }
+
+  const currentQ = filtered[state.ansIndex];
+  const btLabel = { 1:"Remember", 2:"Understand", 3:"Apply", 4:"Analyze", 5:"Evaluate", 6:"Create" };
+
+  // Fetch 10-Mark Model Answer from answers.js
+  const ans = typeof get10MarkAnswer === "function" ? get10MarkAnswer(key, currentQ) : {
+    intro: "10-Mark introduction to " + currentQ.q,
+    content: "<p>Content detailed points</p>",
+    summary: "Summary and conclusion",
+    tips: ["Remember the key formulas"],
+    vocab: [{ term: "Term", def: "Definition" }],
+    mistakes: ["Avoid common errors"]
+  };
+
+  // Render Left Column: 10-Mark Model Answer
+  mainCard.innerHTML = `
+    <div class="ans-meta-header">
+      <span class="ans-tag marks">⭐ 10 Marks Model Answer</span>
+      <span class="ans-tag unit">Unit ${currentQ.unit}</span>
+      ${currentQ.bt ? `<span class="ans-tag bt">BT L${currentQ.bt} · ${btLabel[currentQ.bt]||""}</span>` : ""}
+    </div>
+
+    <h2 class="ans-question-title">${escHtml(currentQ.q)}</h2>
+
+    <!-- Part 1: Relevant Introduction -->
+    <section class="ans-section">
+      <div class="ans-section-badge intro-badge">1. Introduction</div>
+      <div class="ans-text">${ans.intro}</div>
+    </section>
+
+    <!-- Part 2: Core Content & Explanation with Drawing Diagram -->
+    <section class="ans-section">
+      <div class="ans-section-badge content-badge">2. Core Content &amp; Explanation</div>
+      <div class="ans-text">${ans.content}</div>
+    </section>
+
+    <!-- Part 3: Summary and Conclusion -->
+    <section class="ans-section">
+      <div class="ans-section-badge summary-badge">3. Summary &amp; Conclusion</div>
+      <div class="ans-text">${ans.summary}</div>
+    </section>
+  `;
+
+  // Render Right Column: Adjacent Study Companion
+  sidebar.innerHTML = `
+    <!-- 1. Tips to Remember -->
+    <div class="companion-card tips">
+      <div class="companion-header">
+        <span class="cp-icon">💡</span>
+        <h4>Tips to Remember</h4>
+      </div>
+      <ul class="companion-list">
+        ${(ans.tips || []).map(t => `<li>${escHtml(t)}</li>`).join("")}
+      </ul>
+    </div>
+
+    <!-- 2. Subject Vocabulary -->
+    <div class="companion-card vocab">
+      <div class="companion-header">
+        <span class="cp-icon">📖</span>
+        <h4>Subject Vocabulary</h4>
+      </div>
+      <div>
+        ${(ans.vocab || []).map(v => `
+          <div class="companion-vocab-item">
+            <div class="companion-vocab-term">${escHtml(v.term)}</div>
+            <div class="companion-vocab-def">${escHtml(v.def)}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- 3. Mistakes to Avoid -->
+    <div class="companion-card mistakes">
+      <div class="companion-header">
+        <span class="cp-icon">⚠️</span>
+        <h4>Mistakes to Avoid</h4>
+      </div>
+      <ul class="companion-list">
+        ${(ans.mistakes || []).map(m => `<li>${escHtml(m)}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+// ── Answers Event Handlers ────────────────────────────────────
+function onAnsUnitChange() {
+  state.ansUnit = document.getElementById("ansUnitFilter").value;
+  state.ansIndex = 0;
+  renderAnswers();
+}
+
+function onAnsSelectChange() {
+  state.ansIndex = parseInt(document.getElementById("ansQSelect").value, 10) || 0;
+  renderAnswers();
+}
+
+function navAns(delta) {
+  state.ansIndex += delta;
+  renderAnswers();
+}
+
+function copyFullAnswer() {
+  const mainCard = document.getElementById("answerMainCard");
+  if (!mainCard) return;
+  const text = mainCard.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("Full 10-Mark Answer Copied! 📋");
   });
 }
 
